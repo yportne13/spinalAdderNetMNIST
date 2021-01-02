@@ -1,5 +1,13 @@
-import spinal.core._
+/*import spinal.core._
 import spinal.lib._
+
+class Conv2d(
+
+) extends Component {
+  val io = new Bundle {
+    val inp = in 
+  }
+}
 
 class mnist(
   Qi : Int = 8,
@@ -15,4 +23,4 @@ class mnist(
 
 
 
-}
+}*/

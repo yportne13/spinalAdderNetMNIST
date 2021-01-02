@@ -26,7 +26,17 @@ object loadMNIST{
     f2.subplot(0) += image(mat)
     //println(bytes)
     in.close()
-    //val source = Source.fromFile("../data/MNIST/raw/t10k-images-idx3-ubyte")
-    //println(source)
+  }
+}
+
+object loadWeight{
+  def main(args : Array[String]) {
+
+    val file = new File("param_v19best.bin")
+    val in = new FileInputStream(file)
+    val bytes = new Array[Byte](file.length.toInt)
+    in.read(bytes)
+    println(bytes(4))//get the bytes(i*4)
+    in.close()
   }
 }

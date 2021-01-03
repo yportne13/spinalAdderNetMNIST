@@ -62,7 +62,7 @@ object Golden {
       for(j <- 0 until 32) {
         for(m <- 0 until 14) {
           for(n <- 0 until 14) {
-            oup(i) = oup(i) + inp(j)(m)(n) * w(j*14*14+m*14+n)
+            oup(i) = oup(i) + (inp(j)(m)(n) * w(j*14*14+m*14+n) / (1 << 7)).toInt
           }
         }
       }
@@ -124,13 +124,22 @@ object Golden {
       b3(i) = bytesw(4*(i+62720+160+32*16*9+32))
     }
 
-    for(i <- 0 until 10) {
+    for(i <- 0 until 1) {
       val l1 = conv2d(mat(i),1,16,w1,b1)
+      
       val r1 = relu(l1)
       val l2 = conv2d(l1,16,32,w2,b2)
       val r2 = relu(l2)
       val m2 = pool(r2)
       val l3 = fc(m2,w3,b3)
+
+      for(i <- 0 until 14) {
+        for(j <- 0 until 14) {
+          print(m2(0)(j)(i).toInt + ",")
+        }
+        println()
+      }
+
       for(j <- 0 until 10) {
         print(l3(i)+",")
       }

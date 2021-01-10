@@ -19,6 +19,8 @@ class Net(nn.Module):
         #self.fc2 = nn.Linear(64, 10)
 
     def forward(self, x):
+        #x = (x*128+55).int().float()
+        x = (x*256).int().float()
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
@@ -110,8 +112,8 @@ def main():
         test_kwargs.update(cuda_kwargs)
 
     transform=transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.ToTensor()#,
+        #transforms.Normalize((0.1307,), (0.3081,))
         ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                        transform=transform)

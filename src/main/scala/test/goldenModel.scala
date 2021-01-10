@@ -20,7 +20,7 @@ object Golden {
     for(x <- 0 until 28) {//init with bias
       for(y <- 0 until 28) {
         for(k <- 0 until oc) {
-          oup(k)(x)(y) = b(k)
+          oup(k)(x)(y) = b(k) / 128
         }
       }
     }
@@ -30,7 +30,7 @@ object Golden {
           for(j <- 0 until ic) {
             for(m <- 0 until 3) {
               for(n <- 0 until 3) {
-                oup(i)(x)(y) = oup(i)(x)(y) + (tinp(j)(x+m)(y+n) * w(j*9+n*3+m) / (1 << 7)).toInt
+                oup(i)(x)(y) = oup(i)(x)(y) + (tinp(j)(x+m)(y+n) * w(i*9*ic+j*9+m*3+n) / 128)//.toInt
               }
             }
           }
@@ -56,13 +56,13 @@ object Golden {
   def fc(inp : Array[Array[Array[Double]]], w : Array[Int], b : Array[Int]): Array[Double] = {
     val oup = new Array[Double](10)
     for(i <- 0 until 10) {
-      oup(i) = b(i)
+      oup(i) = b(i) / 128
     }
     for(i <- 0 until 10) {
       for(j <- 0 until 32) {
         for(m <- 0 until 14) {
           for(n <- 0 until 14) {
-            oup(i) = oup(i) + (inp(j)(m)(n) * w(j*14*14+m*14+n) / (1 << 7)).toInt
+            oup(i) = oup(i) + (inp(j)(m)(n) * w(i*6272 + j*14*14+m*14+n) / 128)//.toInt
           }
         }
       }
@@ -71,6 +71,15 @@ object Golden {
   }
   def main(args : Array[String]) {
     val mat = Array.ofDim[Double](10000,1,28,28)//new DenseMatrix[Double](10000,28,28)
+    val label = new Array[Int](10000)
+
+    val fil = new File("../data/MNIST/raw/t10k-labels-idx1-ubyte")
+    val inn = new FileInputStream(fil)
+    val bytl = new Array[Byte](fil.length.toInt)
+    inn.read(bytl)
+    for(k <- 0 until 10000) {
+      label(k) = bytl(k+8).toInt
+    }
 
     val file = new File("../data/MNIST/raw/t10k-images-idx3-ubyte")
     val in = new FileInputStream(file)
@@ -81,7 +90,7 @@ object Golden {
         for(j <- 0 until 28) {
           val t = i*28+j+16+784*k
           if(bytes(t)<0) {
-            mat(k)(0)(i)(j) = 128 - bytes(t).toInt
+            mat(k)(0)(i)(j) = 256 + bytes(t).toInt
           }else {
             mat(k)(0)(i)(j) = bytes(t).toInt
           }
@@ -123,27 +132,37 @@ object Golden {
     for(i <- 0 until 10) {
       b3(i) = bytesw(4*(i+62720+160+32*16*9+32))
     }
+    println(w3.max)
 
-    for(i <- 0 until 1) {
+    for(i <- 0 until 10) {
       val l1 = conv2d(mat(i),1,16,w1,b1)
       
       val r1 = relu(l1)
-      val l2 = conv2d(l1,16,32,w2,b2)
+      val l2 = conv2d(r1,16,32,w2,b2)
       val r2 = relu(l2)
       val m2 = pool(r2)
       val l3 = fc(m2,w3,b3)
 
-      for(i <- 0 until 14) {
-        for(j <- 0 until 14) {
-          print(m2(0)(j)(i).toInt + ",")
-        }
-        println()
-      }
+      //for(k <- 0 until 28) {
+      //  for(j <- 0 until 28) {//mat(0)(0)(k)(j)
+      //    print(l2(0)(k)(j).toInt + ",")
+      //  }
+      //  println()
+      //}
 
+      var max = l3(0)
+      var index = 0
       for(j <- 0 until 10) {
-        print(l3(i)+",")
+        if(max < l3(j)) {
+          max = l3(j)
+          index = j
+        }
       }
+      //for(j <- 0 until 10) {
+      //  print(l3(j)+",")
+      //}
       println()
+      println(index + "," + label(i))
       //println(l3)
     }
 

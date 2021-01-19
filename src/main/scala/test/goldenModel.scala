@@ -3,34 +3,33 @@ import breeze.linalg._
 import breeze.plot._
 
 object Golden {
-  def conv2d(inp : Array[Array[Array[Double]]], ic : Int, oc : Int, w : Array[Int], b : Array[Int]): Array[Array[Array[Double]]] = {//DenseMatrix[Double] = {
-    val tinp = Array.ofDim[Double](ic,30,30)//new DenseMatrix[Double](ic,30,30)
-    for(i <- 0 until ic) {
-      for(j <- 0 until 30) {
-        for(k <- 0 until 30) {
-          if(j == 0 || j == 29 || k == 0 || k == 29) {
-            tinp(i)(j)(k) = 0
-          }else {
-            tinp(i)(j)(k) = inp(i)(j-1)(k-1)
+  def conv2d(inp : Array[Array[Array[Double]]], ic : Int, oc : Int, w : Array[Int], stride : Int, padding : Int): Array[Array[Array[Double]]] = {
+    val wide = inp(0).length + padding*2
+    var tinp = Array.ofDim[Double](ic,wide,wide)
+    if(padding == 1) {
+      for(i <- 0 until ic) {
+        for(j <- 0 until wide) {
+          for(k <- 0 until wide) {
+            if(j == 0 || j == wide-1 || k == 0 || k == wide-1) {
+              tinp(i)(j)(k) = 0
+            }else {
+              tinp(i)(j)(k) = inp(i)(j-1)(k-1)
+            }
           }
         }
       }
+    }else {
+      tinp = inp
     }
-    val oup = Array.ofDim[Double](oc,28,28)//new DenseMatrix[Double](oc,28,28)
-    for(x <- 0 until 28) {//init with bias
-      for(y <- 0 until 28) {
-        for(k <- 0 until oc) {
-          oup(k)(x)(y) = b(k) / 128
-        }
-      }
-    }
-    for(x <- 0 until 28) {//calculate conv
-      for(y <- 0 until 28) {
+    val wideout = wide/stride - 2 + padding
+    val oup = Array.ofDim[Double](oc,wideout,wideout)
+    for(x <- 0 until wideout) {//calculate conv
+      for(y <- 0 until wideout) {
         for(i <- 0 until oc) {
           for(j <- 0 until ic) {
             for(m <- 0 until 3) {
               for(n <- 0 until 3) {
-                oup(i)(x)(y) = oup(i)(x)(y) + (tinp(j)(x+m)(y+n) * w(i*9*ic+j*9+m*3+n) / 128)//.toInt
+                oup(i)(x)(y) = oup(i)(x)(y) - (tinp(j)(stride * x+m)(stride * y+n) - w(i*9*ic+j*9+m*3+n).toDouble / 64).abs
               }
             }
           }
@@ -41,33 +40,6 @@ object Golden {
   }
   def relu(inp : Array[Array[Array[Double]]]): Array[Array[Array[Double]]] = {
     inp.map(_.map(_.map(xi => if(xi>=0)xi else 0)))
-  }
-  def pool(inp : Array[Array[Array[Double]]]): Array[Array[Array[Double]]] = {
-    val oup = Array.ofDim[Double](32,14,14)//new DenseMatrix[Double](32,14,14)
-    for(i <- 0 until 32) {
-      for(j <- 0 until 14) {
-        for(k <- 0 until 14) {
-          oup(i)(j)(k) = Array(inp(i)(2*j)(2*k),inp(i)(2*j+1)(2*k),inp(i)(2*j)(2*k+1),inp(i)(2*j+1)(2*k+1)).max
-        }
-      }
-    }
-    oup
-  }
-  def fc(inp : Array[Array[Array[Double]]], w : Array[Int], b : Array[Int]): Array[Double] = {
-    val oup = new Array[Double](10)
-    for(i <- 0 until 10) {
-      oup(i) = b(i) / 128
-    }
-    for(i <- 0 until 10) {
-      for(j <- 0 until 32) {
-        for(m <- 0 until 14) {
-          for(n <- 0 until 14) {
-            oup(i) = oup(i) + (inp(j)(m)(n) * w(i*6272 + j*14*14+m*14+n) / 128)//.toInt
-          }
-        }
-      }
-    }
-    oup
   }
   def main(args : Array[String]) {
     val mat = Array.ofDim[Double](10000,1,28,28)//new DenseMatrix[Double](10000,28,28)
@@ -90,10 +62,11 @@ object Golden {
         for(j <- 0 until 28) {
           val t = i*28+j+16+784*k
           if(bytes(t)<0) {
-            mat(k)(0)(i)(j) = 256 + bytes(t).toInt
+            mat(k)(0)(i)(j) = 256 + bytes(t).toInt.toDouble
           }else {
-            mat(k)(0)(i)(j) = bytes(t).toInt
+            mat(k)(0)(i)(j) = bytes(t).toInt.toDouble
           }
+          mat(k)(0)(i)(j) = mat(k)(0)(i)(j).toDouble / 256.0 - 0.5
         }
       }
     }
@@ -101,7 +74,7 @@ object Golden {
     //f2.subplot(0) += image(mat)
     in.close()
 
-    val filew = new File("param_v19best.bin")
+    val filew = new File("param_ann.bin")
     val inw = new FileInputStream(filew)
     val bytesw = new Array[Byte](filew.length.toInt)
     inw.read(bytesw)
@@ -109,62 +82,81 @@ object Golden {
     inw.close()
 
     val w1 = new Array[Int](16*9)
-    val b1 = new Array[Int](16)
     val w2 = new Array[Int](32*16*9)
-    val b2 = new Array[Int](32)
-    val w3 = new Array[Int](6272*10)
-    val b3 = new Array[Int](10)
-    for(i <- 0 until 16*9) {
-      w1(i) = bytesw(4*i)
+    val w3 = new Array[Int](32*16*9)
+    val w4 = new Array[Int](16*10*9)
+    def b2i(i1 : Byte, i2 : Byte): Int = {
+      val t1 : Int = i1
+      val t2 : Int = i2
+      if(t2 >= 0) {
+        if(t1 < 0) {
+          t2*256+256+t1
+        } else {
+          t2*256+t1
+        }
+      } else {
+        if(t1 < 0) {
+          256*(t2+1) + t1
+        }else {
+          256*(t2+1)-256+t1
+        }
+      }
     }
-    for(i <- 0 until 16) {
-      b1(i) = bytesw(4*(i+16*9))
+    for(i <- 0 until 16*9) {
+      w1(i) = b2i(bytesw(4*i+0),bytesw(4*i+1))//bytesw(4*i+0)
     }
     for(i <- 0 until 32*16*9) {
-      w2(i) = bytesw(4*(i+160))
+      w2(i) = b2i(bytesw(4*(i+16*9)),bytesw(4*(i+16*9)+1))//bytesw(4*(i+16*9))
     }
-    for(i <- 0 until 32) {
-      b2(i) = bytesw(4*(i+160+32*16*9))
+    for(i <- 0 until 32*16*9) {
+      w3(i) = b2i(bytesw(4*(i+16*9+32*16*9)),bytesw(4*(i+16*9+32*16*9)+1))//bytesw(4*(i+16*9+32*16*9))
     }
-    for(i <- 0 until 62720) {
-      w3(i) = bytesw(4*(i+160+32*16*9+32))
+    for(i <- 0 until 16*10*9) {
+      w4(i) = b2i(bytesw(4*(i+16*9+32*16*9*2)),bytesw(4*(i+16*9+32*16*9*2)+1))//bytesw(4*(i+16*9+32*16*9*2))
     }
-    for(i <- 0 until 10) {
-      b3(i) = bytesw(4*(i+62720+160+32*16*9+32))
-    }
-    println(w3.max)
+    println(w4(160*9-1))
 
-    for(i <- 0 until 10) {
-      val l1 = conv2d(mat(i),1,16,w1,b1)
-      
+    var suc = 0
+    for(i <- 0 until 10000) {
+      var l1 = conv2d(mat(i),1,16,w1,2,0)
+      l1 = l1.map(_.map(_.map(_+10)))
+      l1 = l1.map(_.map(_.map(_/4)))
       val r1 = relu(l1)
-      val l2 = conv2d(r1,16,32,w2,b2)
+      var l2 = conv2d(r1,16,32,w2,2,1)
+      l2 = l2.map(_.map(_.map(_+130)))
+      l2 = l2.map(_.map(_.map(_/8)))
       val r2 = relu(l2)
-      val m2 = pool(r2)
-      val l3 = fc(m2,w3,b3)
+      var l3 = conv2d(r2,32,16,w3,2,1)
+      l3 = l3.map(_.map(_.map(_+280)))
+      l3 = l3.map(_.map(_.map(_/16)))
+      val r3 = relu(l3)
+      val l4 = conv2d(r3,16,10,w4,1,0)
 
-      //for(k <- 0 until 28) {
-      //  for(j <- 0 until 28) {//mat(0)(0)(k)(j)
-      //    print(l2(0)(k)(j).toInt + ",")
+      //for(k <- 0 until 1) {
+      //  for(j <- 0 until 1) {//mat(0)(0)(k)(j)
+      //    print(l4(0)(k)(j) + ",")
       //  }
       //  println()
       //}
 
-      var max = l3(0)
+      var max = l4(0)(0)(0)
       var index = 0
       for(j <- 0 until 10) {
-        if(max < l3(j)) {
-          max = l3(j)
+        if(max < l4(j)(0)(0)) {
+          max = l4(j)(0)(0)
           index = j
         }
       }
       //for(j <- 0 until 10) {
       //  print(l3(j)+",")
       //}
-      println()
-      println(index + "," + label(i))
-      //println(l3)
+      //println()
+      //println(index + "," + label(i))
+      if(index == label(i)) {
+        suc = suc + 1
+      }
     }
+    println(suc)
 
   }
 }

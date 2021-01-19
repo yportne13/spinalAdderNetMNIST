@@ -30,11 +30,11 @@ class Weight(
   import java.io.{File, FileInputStream}
 
   val file = new File("param_v19best.bin")
-  val in = new FileInputStream(file)
+  val infile = new FileInputStream(file)
   val bytes = new Array[Byte](file.length.toInt)
-  in.read(bytes)
+  infile.read(bytes)
 
-  val io = new Budle {
+  val io = new Bundle {
     val waddr = in UInt(log2Up(DepW) bits)
     val baddr = in UInt(log2Up(DepB) bits)
     val W    = out SInt(8 bits)

@@ -1,4 +1,4 @@
-import scala.io.Source
+/*import scala.io.Source
 import java.io.{File, FileInputStream}
 import breeze.linalg._
 import breeze.plot._
@@ -39,4 +39,4 @@ object loadWeight{
     println(bytes(4))//get the bytes(i*4)
     in.close()
   }
-}
+}*/

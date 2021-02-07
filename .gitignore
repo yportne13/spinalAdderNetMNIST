@@ -34,7 +34,10 @@ bin/
 *.json
 *.vcd
 !tester/src/test/resources/*.vhd
-
+.bloop
+.metals
+.vscode
+*.txt
 
 simWorkspace/
 tmp/

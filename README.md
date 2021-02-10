@@ -1,108 +1,12 @@
-Spinal Base Project
+SpinalHDL AdderNet MNIST
 ============
-This repository is a base SBT project added to help non Scala/SBT native people in their first steps.
 
-Just one important note, you need a java JDK >= 8
+这是一个瞎写的理论上可以部署在 FPGA 上的用 SpinalHDL 写的针对 MNIST 的 AdderNet，参考了华为的那篇论文和代码。
 
-On debian : 
+网络结构瞎写的，一个四层的网络。训练也是瞎训练的，权重可能不太好，所以准确率很低，浮点精度 97% 多，量化后就更差了。
 
-```sh
-sudo add-apt-repository -y ppa:openjdk-r/ppa
-sudo apt-get update
-sudo apt-get install openjdk-8-jdk -y
+FPGA 代码中 LayerCore 这个核心模块和它下属的模块用比较基础的写法写的，思路就是传统的写 rtl 的思路，可以理解为相当于是 verilog 翻译来的。它的外层 `Layer` `ANN` 等模块用了一些略微高级点的技巧。
 
-#To set the default java
-sudo update-alternatives --config java
-sudo update-alternatives --config javac
-```
+就设计思路来说还有不少可优化之处，例如，前两层量化位宽压根不需要这么宽，可以节约大量的资源。再就是不同层计算的所用时间不一样，所以也存在大量资源浪费。
 
-## Basics, without any IDE
-
-You need to install SBT
-
-```sh
-echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-sudo apt-get update
-sudo apt-get install sbt
-```
-
-If you want to run the scala written testbench, you have to be on linux and have Verilator installed (a recent version) :
-
-```sh
-sudo apt-get install git make autoconf g++ flex bison -y  # First time prerequisites
-git clone http://git.veripool.org/git/verilator   # Only first time
-unsetenv VERILATOR_ROOT  # For csh; ignore error if on bash
-unset VERILATOR_ROOT  # For bash
-cd verilator
-git pull        # Make sure we're up-to-date
-git checkout verilator_3_916
-autoconf        # Create ./configure script
-./configure
-make -j$(nproc)
-sudo make install
-cd ..
-echo "DONE"
-
-```
-
-Clone or download this repository.
-
-```sh
-git clone https://github.com/SpinalHDL/SpinalTemplateSbt.git
-```
-
-Open a terminal in the root of it and run "sbt run". At the first execution, the process could take some seconds
-
-```sh
-cd SpinalTemplateSbt
-
-//If you want to generate the Verilog of your design
-sbt "runMain mylib.MyTopLevelVerilog"
-
-//If you want to generate the VHDL of your design
-sbt "runMain mylib.MyTopLevelVhdl"
-
-//If you want to run the scala written testbench
-sbt "runMain mylib.MyTopLevelSim"
-```
-
-The top level spinal code is defined into src\main\scala\mylib
-
-## Basics, with Intellij IDEA and its scala plugin
-
-You need to install :
-
-- Java JDK 8
-- SBT
-- Intellij IDEA (the free Community Edition is good enough)
-- Intellij IDEA Scala plugin (when you run Intellij IDEA the first time, he will ask you about it)
-
-And do the following :
-
-- Clone or download this repository.
-- In Intellij IDEA, "import project" with the root of this repository, Import project from external model SBT
-- In addition maybe you need to specify some path like JDK to Intellij
-- In the project (Intellij project GUI), go in src/main/scala/mylib/MyTopLevel.scala, right click on MyTopLevelVerilog, "Run MyTopLevelVerilog"
-
-Normally, this must generate an MyTopLevel.v output files.
-
-## Basics, with Eclipse and its scala plugin
-
-You need to install :
-
-- Java JDK
-- Scala
-- SBT
-- Eclipse (tested with Mars.2 - 4.5.2)
-- [scala plugin](http://scala-ide.org/) (tested with 4.4.1)
-
-And do the following :
-
-- Clone or download this repository.
-- Run ```sbt eclipse``` in the ```SpinalTemplateSbt``` directory.
-- Import the eclipse project from eclipse.
-- In the project (eclipse project GUI), right click on src/main/scala/mylib/MyTopLevel.scala, right click on MyTopLevelVerilog, and select run it
-
-Normally, this must generate output file ```MyTopLevel.v```.
-
+大家看看就好，写这个的目的主要是展示 SpinalHDL 优秀的参数化的能力，和 AdderNet 在 FPGA 中的巨大潜力。

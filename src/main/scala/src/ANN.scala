@@ -28,6 +28,6 @@ class ANN(
 
 object annTop {
   def main(args : Array[String]) {
-    SpinalVerilog(new ANN(24))
+    SpinalVerilog(new ANN(18))
   }
 }

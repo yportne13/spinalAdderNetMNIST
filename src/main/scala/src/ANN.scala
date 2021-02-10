@@ -7,8 +7,7 @@ class ANN(
   val io = new Bundle {
     val valid_in = in Bool
     val data_in  = in Vec(SInt(Q bits),28)
-    val valid_out = out Bool
-    val data_out = out Vec(SInt(Q bits),1)
+    val output = out (Flow(UInt(4 bits)))
   }
 
   val l1 = new Layer(1,16,2,0,28,28,Q,1,SubNum = 10*256, DivNum = 2)
@@ -24,8 +23,7 @@ class ANN(
   val l4 = new Layer(16,10,1,0,3,3,Q,4,SubNum = 0, DivNum = 0, noReLu = true)
   l4.io.input := l3.io.output
 
-  io.valid_out := l4.io.output.valid
-  io.data_out  := l4.io.output.payload
+  io.output := FindMax(l4.io.output)
 }
 
 object annTop {

@@ -9,95 +9,108 @@ class Layer(
   Win        : Int,
   Hin        : Int,
   Q          : Int,
-  layer      : Int
+  layer      : Int,
+  SubNum     : Int,
+  DivNum     : Int
 ) extends Component {
 
   val Wout = (Win + 2 * padding - 2) / stride
   val Hout = (Hin + 2 * padding - 2) / stride
+
   val io = new Bundle {
-    val valid_in = in Bool
-    val data_in  = in Vec(SInt(Q bits),Win)
-    val valid_out = out Bool
-    val data_out = out Vec(Vec(UInt(Q bits),Wout),Chout)//Vec(UInt(Q bits),Wout)
+    val input = in (Flow(Vec(SInt(Q bits),Win)))
+    val output = out (Flow(Vec(SInt(Q bits),Wout)))
   }
 
-  //layer fifo
-  val FMram = Mem(Vec(SInt(Q bits),Win),wordCount = Hin*Chin)
-  val faddw = Reg(UInt(log2Up(Hin*Chin) bits)) init(0)
-  when(io.valid_in) {
-    when(faddw < Hin*Chin - 1) {
-      faddw := faddw + 1
+  val lcore = new LayerCore(Chin,Chout,stride,padding,Win,Hin,Q,layer)
+  lcore.io.valid_in := io.input.valid
+  lcore.io.data_in  := io.input.payload
+
+  val lcOut = Flow(Vec(UInt(Q bits),Wout))
+  if(9*Chin < Chout) {
+    val wide = scala.math.ceil(9.0*Chin / Chout).toInt
+    val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
+    when(lcore.io.valid_out) {
+      lOut := lcore.io.data_out
     }.otherwise {
-      faddw := 0
-    }
-  }
-  FMram.write(
-    address = faddw,
-    data    = io.data_in,
-    enable  = io.valid_in
-  )
-
-  val start = Reg(Bool) init(False)
-  when(faddw === Hin*Chin - 1 && io.valid_in) {
-    start := True
-  }.otherwise {
-    start := False
-  }
-
-  //ctrl
-  val ctrl = new Ctrl(Chin = Chin, high = Hout, Hin = Hin, stride = stride, padding = padding)
-  ctrl.io.start := start
-
-  //feature map
-  val FMramOut = Vec(SInt(Q bits),Win)
-  FMramOut := FMram.readSync(ctrl.io.faddr)
-  val peFM = Vec(Reg(SInt(Q bits)) init(0),Win + 2*padding)
-  when(Delay(ctrl.io.shift,1)) {
-    for(i <- 0 until Win + 2 * padding - 1) {
-      peFM(i) := peFM(i + 1)
-    }
-  }.otherwise {
-    if(padding == 1) {
-      peFM(0) := 0
-      peFM(Win + padding) := 0
-      for(i <- 0 until Win) {
-        peFM(i+1) := FMramOut(i)
-      }
-    }else {
-      for(i <- 0 until Win) {
-        peFM(i) := FMramOut(i)
+      for(i <- 0 until Chout/wide - 1) {
+        (0 until wide).map(x => lOut(i + x) := lOut(i + x + wide))
       }
     }
-  }
-
-  //weight
-  val wrom = new Wrom(Qw = 12, Chout = Chout, layer = layer)
-  wrom.io.addr := Delay(ctrl.io.waddr,1)
-
-  val pe = new PE(Wout = Wout, Chout = Chout, Qfm = Q, Qo = Q)
-  pe.io.clear := ctrl.io.clear
-  for(i <- 0 until Wout) {
-    pe.io.FM(i) := peFM(i * stride)
-  }
-  //or to write as:  pe.io.FM := Vec()
-  pe.io.W  := wrom.io.w
-
-  val peOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
-  when(Delay(ctrl.io.valid,4)) {
-    peOut := pe.io.oup
-  }.otherwise {
-    for(i <- 0 until Chout - 1) {
-      peOut(i) := peOut(i+1)
+    val fifoWen = Reg(Bool) init(False)
+    when(lcore.io.valid_out) {
+      fifoWen := True
+    }.elsewhen(Delay(lcore.io.valid_out,Chout * Hout / wide,init = False)) {
+      fifoWen := False
     }
+    val fifoAddw = Reg(UInt(log2Up(Chout * Hout / wide) bits)) init(0)
+    when(fifoWen) {
+      when(fifoAddw < Chout * Hout / wide - 1) {
+        fifoAddw := fifoAddw + 1
+      }.otherwise {
+        fifoAddw := 0
+      }
+    }
+    val fifo = Mem(Vec(Vec(UInt(Q bits),Wout),wide),wordCount = Hout * Chout / wide)
+    fifo.write (
+      address = fifoAddw,
+      enable  = fifoWen,
+      data    = Vec((0 until wide).map(x => lOut(x)))
+    )
+    val fifoRen = Reg(Bool) init(False)
+    val faddr1 = Reg(UInt(log2Up(wide) bits)) init(0)
+    val faddr2 = Reg(UInt(log2Up(Hout * Chout / wide) bits)) init(0)
+    when(fifoWen) {
+      fifoRen := True
+    }.elsewhen(faddr1 === wide - 1 && faddr2 === Hout * Chout / wide - 1) {
+      fifoRen := False
+    }
+    when(fifoRen) {
+      when(faddr1 < wide - 1) {
+        faddr1 := faddr1 + 1
+      }.otherwise {
+        faddr1 := 0
+        when(faddr2 < Hout * Chout / wide - 1) {
+          faddr2 := faddr2 + 1
+        }.otherwise {
+          faddr2 := 0
+        }
+      }
+    }
+    val fifoOut = Vec(Vec(UInt(Q bits),Wout),wide)
+    fifoOut := fifo.readSync(faddr2)
+    val lcOutShift = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),wide)
+    when(Delay(faddr1 === 0,1,init = False)) {
+      lcOutShift := fifoOut
+    }.otherwise {
+      for(i <- 0 until wide - 1) {
+        lcOutShift(i) := lcOutShift(i+1)
+      }
+    }
+    lcOut.payload := lcOutShift(0)
+    lcOut.valid   := Delay(fifoRen,2,init = False)
+
+  } else {
+    val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
+    when(lcore.io.valid_out) {
+      lOut := lcore.io.data_out
+    }.otherwise {
+      for(i <- 0 until Chout - 1) {
+        lOut(i) := lOut(i+1)
+      }
+    }
+    lcOut.payload := lOut(0)
+    val lcOutValid = Reg(Bool) init(False)
+    when(lcore.io.valid_out) {
+      lcOutValid := True
+    }.elsewhen(Delay(lcore.io.valid_out,Chout)) {
+      lcOutValid := False
+    }
+    lcOut.valid   := lcOutValid
   }
 
-  io.valid_out := Delay(ctrl.io.valid,4,init = False)
-  io.data_out := pe.io.oup//peOut(0)
+  val lcSub = Vec(lcOut.payload.map(x => S(False ## x) - SubNum).map(x => RegNext(x(x.getWidth - 1 downto DivNum)).resize(x.getWidth bits)))
+  io.output.payload := ReLu(lcSub)
+  io.output.valid   := Delay(lcOut.valid,2,init = False)
 
-}
-
-object laye {
-  def main(args : Array[String]) {
-    SpinalVerilog(new Layer(1,16,2,0,28,28,16,1))
-  }
 }

@@ -6,7 +6,7 @@ import spinal.core.sim._
 object LayerSim {
   def main(args : Array[String]) {
     val (mat,label) = LoadMNIST()
-    SimConfig.withWave.doSim(new Layer(1,16,2,0,28,28,16,1)){dut =>
+    SimConfig.withWave.doSim(new LayerCore(1,16,2,0,28,28,16,1)){dut =>
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
       for(idx <- 0 until 1000) {

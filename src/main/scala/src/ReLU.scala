@@ -17,7 +17,7 @@ object ReLu {
     ret
   }
 }
-
+/*
 class ReLU(
   Qi : Int = 32,
   Wi : Int = 28
@@ -37,4 +37,4 @@ class ReLU(
   }
   io.oup := oup
 
-}
+}*/

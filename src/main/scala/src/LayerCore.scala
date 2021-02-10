@@ -12,8 +12,8 @@ class LayerCore(
   layer      : Int
 ) extends Component {
 
-  val Wout = (Win + 2 * padding - 2) / stride
-  val Hout = (Hin + 2 * padding - 2) / stride
+  val Wout = (Win + 2 * padding) / stride + padding - 2
+  val Hout = (Hin + 2 * padding) / stride + padding - 2
   val io = new Bundle {
     val valid_in = in Bool
     val data_in  = in Vec(SInt(Q bits),Win)

@@ -1,4 +1,4 @@
-/*import spinal.core._
+import spinal.core._
 import spinal.lib._
 
 class ANN(
@@ -7,34 +7,29 @@ class ANN(
   val io = new Bundle {
     val valid_in = in Bool
     val data_in  = in Vec(SInt(Q bits),28)
+    val valid_out = out Bool
+    val data_out = out Vec(SInt(Q bits),1)
   }
 
-  val l1 = new Layer(1,16,2,0,28,28,Q,1)
-  l1.io.valid_in := io.valid_in
-  l1.io.data_in  := io.data_in
-  val l1Out = Vec(Vec(Reg(UInt(Q bits)) init(0),12),16)
-  when(l1.io.valid_out) {
-    l1Out := l1.io.data_out
-  }.otherwise {
-    for(i <- 0 until 8 - 1) {
-      l1Out(i) := l1Out(i+2)
-      l1Out(i+1) := l1Out(i+3)
-    }
+  val l1 = new Layer(1,16,2,0,28,28,Q,1,SubNum = 10*256, DivNum = 2)
+  l1.io.input.valid := io.valid_in
+  l1.io.input.payload  := io.data_in
+
+  val l2 = new Layer(16,32,2,1,12,12,Q,2,SubNum = 130*256, DivNum = 3)
+  l2.io.input := l1.io.output
+
+  val l3 = new Layer(32,16,2,1,6,6,Q,3,SubNum = 280*256, DivNum = 4)
+  l3.io.input := l2.io.output
+
+  val l4 = new Layer(16,10,1,0,3,3,Q,4,SubNum = 0, DivNum = 0, noReLu = true)
+  l4.io.input := l3.io.output
+
+  io.valid_out := l4.io.output.valid
+  io.data_out  := l4.io.output.payload
+}
+
+object annTop {
+  def main(args : Array[String]) {
+    SpinalVerilog(new ANN(24))
   }
-  val l1fifo = Mem(Vec(Vec(UInt(Q bits),12),2),wordCount = )
-  l1fifo.write(
-    enable = ,
-    address = ,
-    data = Vec(l1Out(0),l1Out(1))
-  )
-
-  val l2 = new Layer(16,32,2,1,12,12,Q,2)
-
-
-
-  val l3 = new Layer(32,16,2,1,6,6,Q,3)
-
-
-
-  val l4 = new Layer(16,10,2,0,3,3,Q,4)
-}*/
+}

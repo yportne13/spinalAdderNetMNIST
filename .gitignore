@@ -38,6 +38,7 @@ bin/
 .metals
 .vscode
 *.txt
+*.bin
 
 simWorkspace/
 tmp/

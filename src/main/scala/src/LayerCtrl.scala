@@ -54,16 +54,22 @@ class Ctrl(
       cnt2 := 0
     }
   }
-  when(cnt1 === 2 && cntChannel === Chin - 1 && cnt2 === 2) {
-    when(cntH < high - 1) {
-      cntH := cntH + 1
-    }.otherwise {
-      cntH := 0
+  if(high > 1) {
+    when(cnt1 === 2 && cntChannel === Chin - 1 && cnt2 === 2) {
+      when(cntH < high - 1) {
+        cntH := cntH + 1
+      }.otherwise {
+        cntH := 0
+      }
     }
   }
 
   val faddr = Reg(UInt(log2Up(Hin * Chin) bits)) init(0)
-  faddr := cntChannel + cnt2 * Chin + ((cntH - padding) * Chin * stride)(log2Up(Hin * Chin) - 1 downto 0)
+  if(high > 1) {
+    faddr := cntChannel + cnt2 * Chin + ((cntH - padding) * Chin * stride)(log2Up(Hin * Chin) - 1 downto 0)
+  }else {
+    faddr := cntChannel + (cnt2 * Chin)(log2Up(Hin * Chin) - 1 downto 0)
+  }
 
   val waddr = Reg(UInt(log2Up(Chin * 9) bits)) init(0)
   waddr := cntChannel * 9 + cnt2 * 3 + cnt1

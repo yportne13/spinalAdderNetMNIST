@@ -11,11 +11,12 @@ class Layer(
   Q          : Int,
   layer      : Int,
   SubNum     : Int,
-  DivNum     : Int
+  DivNum     : Int,
+  noReLu     : Boolean = false
 ) extends Component {
 
-  val Wout = (Win + 2 * padding - 2) / stride
-  val Hout = (Hin + 2 * padding - 2) / stride
+  val Wout = (Win + 2 * padding) / stride + padding - 2
+  val Hout = (Hin + 2 * padding) / stride + padding - 2
 
   val io = new Bundle {
     val input = in (Flow(Vec(SInt(Q bits),Win)))
@@ -28,13 +29,13 @@ class Layer(
 
   val lcOut = Flow(Vec(UInt(Q bits),Wout))
   if(9*Chin < Chout) {
-    val wide = scala.math.ceil(9.0*Chin / Chout).toInt
+    val wide = scala.math.ceil(Chout / 9.0*Chin).toInt
     val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
     when(lcore.io.valid_out) {
       lOut := lcore.io.data_out
     }.otherwise {
       for(i <- 0 until Chout/wide - 1) {
-        (0 until wide).map(x => lOut(i + x) := lOut(i + x + wide))
+        (0 until wide).map(x => lOut(i * wide + x) := lOut(i * wide + x + wide))
       }
     }
     val fifoWen = Reg(Bool) init(False)
@@ -109,8 +110,13 @@ class Layer(
     lcOut.valid   := lcOutValid
   }
 
-  val lcSub = Vec(lcOut.payload.map(x => S(False ## x) - SubNum).map(x => RegNext(x(x.getWidth - 1 downto DivNum)).resize(x.getWidth bits)))
-  io.output.payload := ReLu(lcSub)
-  io.output.valid   := Delay(lcOut.valid,2,init = False)
+  if(noReLu) {
+    io.output.payload := Vec(lcOut.payload.map(x => S(x)))
+    io.output.valid   := lcOut.valid
+  } else {
+    val lcSub = Vec(lcOut.payload.map(x => S(x) - SubNum).map(x => RegNext(-x(x.getWidth - 1 downto DivNum)).resize(x.getWidth bits)))
+    io.output.payload := ReLu(lcSub)
+    io.output.valid   := Delay(lcOut.valid,2,init = False)
+  }
 
 }

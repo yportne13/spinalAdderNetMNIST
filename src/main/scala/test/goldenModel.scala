@@ -49,29 +49,31 @@ object Golden {
     //println(mat(0)(0)(7)(7))
 
     var suc = 0
-    for(i <- 0 until 1) {
+    for(i <- 0 until 5) {
       var l1 = conv2d(mat(i),1,16,w1,2,0)
       l1 = l1.map(_.map(_.map(_+10)))
       l1 = l1.map(_.map(_.map(_/4)))
       var r1 = relu(l1)
-      r1 = r1.map(x => x.map(x => x.map(scala.math.ceil(_))))
+      r1 = r1.map(x => x.map(x => x.map(x => scala.math.ceil(x*256)/256)))
       var l2 = conv2d(r1,16,32,w2,2,1)
       l2 = l2.map(_.map(_.map(_+130)))
       l2 = l2.map(_.map(_.map(_/8)))
-      val r2 = relu(l2)
+      var r2 = relu(l2)
+      r2 = r2.map(x => x.map(x => x.map(x => scala.math.ceil(x*256)/256)))
       var l3 = conv2d(r2,32,16,w3,2,1)
       l3 = l3.map(_.map(_.map(_+280)))
       l3 = l3.map(_.map(_.map(_/16)))
-      val r3 = relu(l3)
+      var r3 = relu(l3)
+      r3 = r3.map(x => x.map(x => x.map(x => scala.math.ceil(x*256)/256)))
       val l4 = conv2d(r3,16,10,w4,1,0)
 
-      for(k <- 0 until 6) {
-        for(j <- 0 until 6) {//mat(0)(0)(k)(j)
-          //print(-(l1(0)(k)(j)*4-10)*256 + ",")
-          print(l2(1)(k)(j)*256 + ",")
-        }
-        println()
-      }
+      //for(k <- 0 until 1) {
+      //  for(j <- 0 until 1) {//mat(0)(0)(k)(j)
+      //    //print(-(l1(0)(k)(j)*4-10)*256 + ",")
+      //    print(l4(0)(k)(j)*256 + ",")
+      //  }
+      //  println()
+      //}
 
       var max = l4(0)(0)(0)
       var index = 0

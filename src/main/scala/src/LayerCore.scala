@@ -33,7 +33,7 @@ class LayerCore(
     when(faddw < (Hin+padding)*Chin - 1) {
       faddw := faddw + 1
     }.otherwise {
-      faddw := 0
+      faddw := padding * Chin
     }
   }
   FMram.write(

@@ -7,14 +7,16 @@ object ANNSim {
   def main(args : Array[String]) {
     val (mat,label) = LoadMNIST()
     var oCnt = 0
-    SimConfig.withWave.doSim(new ANN(25)){dut =>
+    var successCnt = 0
+    var delay = 900
+    SimConfig.withWave.doSim(new ANN(32)){dut =>
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
-      for(idx <- 0 until 8000) {
-        if(idx%1000 > 2 && idx%1000 <= 30) {
+      for(idx <- 0 until 800000) {
+        if(idx%delay > 2 && idx%delay <= 30) {
           dut.io.valid_in #= true
           for(i <- 0 until 28) {
-            dut.io.data_in(i) #= (mat(idx/1000)(0)(idx%1000 - 3)(i)*256).toInt
+            dut.io.data_in(i) #= (mat(idx/delay)(0)(idx%delay - 3)(i)*256).toInt
           }
         }else {
           dut.io.valid_in #= false
@@ -30,12 +32,16 @@ object ANNSim {
         //  println()
         //}
         if(dut.io.output.valid.toBoolean == true) {
-          print(dut.io.output.payload.toLong + ",")
-          print(label(oCnt))
-          println()
+          //print(dut.io.output.payload.toLong + ",")
+          //print(label(oCnt))
+          //println()
+          if(label(oCnt) == dut.io.output.payload.toLong) {
+            successCnt = successCnt + 1
+          }
           oCnt = oCnt + 1
         }
       }
     }
+    println(successCnt + ";" + oCnt)
   }
 }

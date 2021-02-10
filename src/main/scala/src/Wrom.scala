@@ -33,7 +33,7 @@ class Wrom(
     val a = i%9
     //val a = b%3*3+b/3//TODO
     val chin = i/9
-    Vec((0 until Chout).map(x => S(w(chin * 9 * Chout + x * 9 + a)*256/64,Qw bits)))
+    Vec((0 until Chout).map(x => S(w(romDepth * x + i)*256/64,Qw bits)))
   }
   val rom = Mem(Vec(SInt(Qw bits),Chout),initialContent = Wdata)
   io.w := rom.readSync(io.addr)

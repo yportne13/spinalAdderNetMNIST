@@ -53,7 +53,8 @@ object Golden {
       var l1 = conv2d(mat(i),1,16,w1,2,0)
       l1 = l1.map(_.map(_.map(_+10)))
       l1 = l1.map(_.map(_.map(_/4)))
-      val r1 = relu(l1)
+      var r1 = relu(l1)
+      r1 = r1.map(x => x.map(x => x.map(scala.math.ceil(_))))
       var l2 = conv2d(r1,16,32,w2,2,1)
       l2 = l2.map(_.map(_.map(_+130)))
       l2 = l2.map(_.map(_.map(_/8)))
@@ -64,9 +65,10 @@ object Golden {
       val r3 = relu(l3)
       val l4 = conv2d(r3,16,10,w4,1,0)
 
-      for(k <- 0 until 12) {
-        for(j <- 0 until 12) {//mat(0)(0)(k)(j)
-          print(-(l1(0)(k)(j)*4-10)*256 + ",")
+      for(k <- 0 until 6) {
+        for(j <- 0 until 6) {//mat(0)(0)(k)(j)
+          //print(-(l1(0)(k)(j)*4-10)*256 + ",")
+          print(l2(1)(k)(j)*256 + ",")
         }
         println()
       }

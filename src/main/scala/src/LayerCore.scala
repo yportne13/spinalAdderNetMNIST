@@ -1,5 +1,7 @@
 import spinal.core._
 import spinal.lib._
+import spinal.sim._
+import spinal.core.sim._
 
 class LayerCore(
   Chin  : Int,
@@ -19,15 +21,16 @@ class LayerCore(
     val data_in  = in Vec(SInt(Q bits),Win)
     val valid_out = out Bool
     val data_out = out Vec(Vec(UInt(Q bits),Wout),Chout)//Vec(UInt(Q bits),Wout)
-  }
+  } simPublic()
 
   //layer ram
-  val FMram = Mem(Vec(SInt(Q bits),Win),wordCount = Hin*Chin*2)
+  val FMram = Mem(Vec(SInt(Q bits),Win),wordCount = (Hin+2*padding)*Chin*2)
+  FMram.init(Vec((0 until (Hin+2*padding)*Chin*2).map(x => Vec((0 until Win).map(x => S(0,Q bits))))))//init the ram with all 0
   val pingpongW = Reg(Bool) init(False)
   val pingpongR = Reg(Bool) init(True)
-  val faddw = Reg(UInt(log2Up(Hin*Chin) bits)) init(0)
+  val faddw = Reg(UInt(log2Up((Hin+2*padding)*Chin) bits)) init(padding * Chin)
   when(io.valid_in) {
-    when(faddw < Hin*Chin - 1) {
+    when(faddw < (Hin+padding)*Chin - 1) {
       faddw := faddw + 1
     }.otherwise {
       faddw := 0
@@ -40,7 +43,7 @@ class LayerCore(
   )
 
   val start = Reg(Bool) init(False)
-  when(faddw === Hin*Chin - 1 && io.valid_in) {
+  when(faddw === (Hin+padding)*Chin - 1 && io.valid_in) {
     start := True
     pingpongR := !pingpongR
     pingpongW := !pingpongW

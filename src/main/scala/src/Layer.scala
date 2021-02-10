@@ -1,5 +1,7 @@
 import spinal.core._
 import spinal.lib._
+import spinal.sim._
+import spinal.core.sim._
 
 class Layer(
   Chin  : Int,
@@ -21,7 +23,7 @@ class Layer(
   val io = new Bundle {
     val input = in (Flow(Vec(SInt(Q bits),Win)))
     val output = out (Flow(Vec(SInt(Q bits),Wout)))
-  }
+  } simPublic()
 
   val lcore = new LayerCore(Chin,Chout,stride,padding,Win,Hin,Q,layer)
   lcore.io.valid_in := io.input.valid
@@ -39,28 +41,33 @@ class Layer(
       }
     }
     val fifoWen = Reg(Bool) init(False)
+    fifoWen.setWeakName("fifoWen")
     when(lcore.io.valid_out) {
       fifoWen := True
-    }.elsewhen(Delay(lcore.io.valid_out,Chout * Hout / wide,init = False)) {
+    }.elsewhen(Delay(lcore.io.valid_out, Chout / wide, init = False)) {
       fifoWen := False
     }
-    val fifoAddw = Reg(UInt(log2Up(Chout * Hout / wide) bits)) init(0)
+    val faddw = Reg(UInt(log2Up(Chout * Hout / wide) bits)) init(0)
+    faddw.setWeakName("faddw")
     when(fifoWen) {
-      when(fifoAddw < Chout * Hout / wide - 1) {
-        fifoAddw := fifoAddw + 1
+      when(faddw < Chout * Hout / wide - 1) {
+        faddw := faddw + 1
       }.otherwise {
-        fifoAddw := 0
+        faddw := 0
       }
     }
     val fifo = Mem(Vec(Vec(UInt(Q bits),Wout),wide),wordCount = Hout * Chout / wide)
     fifo.write (
-      address = fifoAddw,
+      address = faddw,
       enable  = fifoWen,
       data    = Vec((0 until wide).map(x => lOut(x)))
     )
     val fifoRen = Reg(Bool) init(False)
+    fifoRen.setWeakName("fifoRen")
     val faddr1 = Reg(UInt(log2Up(wide) bits)) init(0)
+    faddr1.setWeakName("faddr1")
     val faddr2 = Reg(UInt(log2Up(Hout * Chout / wide) bits)) init(0)
+    faddr2.setWeakName("faddr2")
     when(fifoWen) {
       fifoRen := True
     }.elsewhen(faddr1 === wide - 1 && faddr2 === Hout * Chout / wide - 1) {
@@ -115,6 +122,7 @@ class Layer(
     io.output.valid   := lcOut.valid
   } else {
     val lcSub = Vec(lcOut.payload.map(x => S(x) - SubNum).map(x => RegNext(-x(x.getWidth - 1 downto DivNum)).resize(x.getWidth bits)))
+    lcSub.setWeakName("lcSub")
     io.output.payload := ReLu(lcSub)
     io.output.valid   := Delay(lcOut.valid,2,init = False)
   }

@@ -12,7 +12,7 @@ object ANNSim {
     SimConfig.doSim(new ANN(18)){dut =>//.withWave
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
-      for(idx <- 0 until 900000) {
+      for(idx <- 0 until 9000000) {
         if(idx%delay > 2 && idx%delay <= 30+28) {
           dut.io.valid_in #= true
           for(i <- 0 until 14) {

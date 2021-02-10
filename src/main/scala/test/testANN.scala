@@ -8,19 +8,19 @@ object ANNSim {
     val (mat,label) = LoadMNIST()
     var oCnt = 0
     var successCnt = 0
-    var delay = 900
+    var delay = 864
     SimConfig.doSim(new ANN(18)){dut =>//.withWave
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
-      for(idx <- 0 until 9000000) {
-        if(idx%delay > 2 && idx%delay <= 30) {
+      for(idx <- 0 until 900000) {
+        if(idx%delay > 2 && idx%delay <= 30+28) {
           dut.io.valid_in #= true
-          for(i <- 0 until 28) {
-            dut.io.data_in(i) #= (mat(idx/delay)(0)(idx%delay - 3)(i)*256).toInt
+          for(i <- 0 until 14) {
+            dut.io.data_in(i) #= (mat(idx/delay)(0)((idx%delay - 3)/2)(i+14*((idx%delay - 3)%2))*256).toInt
           }
         }else {
           dut.io.valid_in #= false
-          for(i <- 0 until 28) {
+          for(i <- 0 until 14) {
             dut.io.data_in(i) #= 0
           }
         }

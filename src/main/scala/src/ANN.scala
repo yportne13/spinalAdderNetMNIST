@@ -6,13 +6,27 @@ class ANN(
 ) extends Component {
   val io = new Bundle {
     val valid_in = in Bool
-    val data_in  = in Vec(SInt(Q bits),28)
+    val data_in  = in Vec(SInt(8 bits),14)
     val output = out (Flow(UInt(4 bits)))
   }
 
+  val l1in = Vec(Reg(SInt(Q bits)) init(0),28)
+  when(io.valid_in) {
+    for(i <- 0 until 14) {
+      l1in(i+14) := io.data_in(i).resize(Q bits)
+      l1in(i) := l1in(i+14)
+    }
+  }
+  val flip = Reg(Bool) init(False)
+  when(io.valid_in) {
+    flip := !flip
+  }.otherwise {
+    flip := False
+  }
+
   val l1 = new Layer(1,16,2,0,28,28,Q,1,SubNum = 10*256, DivNum = 2)
-  l1.io.input.valid := io.valid_in
-  l1.io.input.payload  := io.data_in
+  l1.io.input.valid := Delay(flip,1,init = False)//io.valid_in
+  l1.io.input.payload  := l1in//io.data_in
 
   val l2 = new Layer(16,32,2,1,12,12,Q,2,SubNum = 130*256, DivNum = 3)
   l2.io.input := l1.io.output

@@ -19,7 +19,7 @@ class PE(
   val absOut = Vec(Vec(Reg(UInt(Array(Qfm,Qw).max bits)) init(0),Wout),Chout)
   for(i <- 0 until Chout) {
     for(j <- 0 until Wout) {
-      absOut(i)(j) := (io.FM(j) -^ io.W(i)).abs.resize(Array(Qfm,Qw).max bits)
+      absOut(i)(j) := (io.FM(j) - io.W(i)).abs//(io.FM(j) -^ io.W(i)).abs.resize(Array(Qfm,Qw).max bits)
     }
   }
   

@@ -84,7 +84,8 @@ class Ctrl(
 
   val waddr = Reg(UInt(log2Up(Chin * 9 * ChoutDivHard) bits)) init(0)
   if(ChoutDivHard > 1) {
-    waddr := (cntChin * 9 * ChoutDivHard)(log2Up(Chin * 9 * ChoutDivHard) - 1 downto 0) + cntC * 9 + cnt2 * 3 + cnt1
+    waddr := (cntC * 9 * Chin)(log2Up(Chin * 9 * ChoutDivHard) - 1 downto 0) + cntChin * 9 + cnt2 * 3 + cnt1
+    //waddr := (cntChin * 9 * ChoutDivHard)(log2Up(Chin * 9 * ChoutDivHard) - 1 downto 0) + cntC * 9 + cnt2 * 3 + cnt1
   }else {
     waddr := cntChin * 9 + cnt2 * 3 + cnt1
   }

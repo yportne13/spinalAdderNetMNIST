@@ -14,6 +14,7 @@ class Layer(
   layer      : Int,
   SubNum     : Int,
   DivNum     : Int,
+  ChoutDivHard : Int = 1,
   noReLu     : Boolean = false
 ) extends Component {
 
@@ -25,18 +26,19 @@ class Layer(
     val output = out (Flow(Vec(SInt(Q bits),Wout)))
   } simPublic()
 
-  val lcore = new LayerCore(Chin,Chout,stride,padding,Win,Hin,Q,layer)
+  val lcore = new LayerCore(Chin,Chout,ChoutDivHard,stride,padding,Win,Hin,Q,layer)
   lcore.io.valid_in := io.input.valid
   lcore.io.data_in  := io.input.payload
 
   val lcOut = Flow(Vec(UInt(Q bits),Wout))
-  if(9*Chin < Chout) {
-    val wide = scala.math.ceil(Chout / 9.0*Chin).toInt
+  if(9*Chin < Chout / ChoutDivHard) {
+    var ChoutD = Chout / ChoutDivHard
+    val wide = scala.math.ceil(ChoutD / 9.0*Chin).toInt
     val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
     when(lcore.io.valid_out) {
       lOut := lcore.io.data_out
     }.otherwise {
-      for(i <- 0 until Chout/wide - 1) {
+      for(i <- 0 until ChoutD/wide - 1) {
         (0 until wide).map(x => lOut(i * wide + x) := lOut(i * wide + x + wide))
       }
     }
@@ -44,19 +46,19 @@ class Layer(
     fifoWen.setWeakName("fifoWen")
     when(lcore.io.valid_out) {
       fifoWen := True
-    }.elsewhen(Delay(lcore.io.valid_out, Chout / wide, init = False)) {
+    }.elsewhen(Delay(lcore.io.valid_out, ChoutD / wide, init = False)) {
       fifoWen := False
     }
-    val faddw = Reg(UInt(log2Up(Chout * Hout / wide) bits)) init(0)
+    val faddw = Reg(UInt(log2Up(ChoutD * Hout / wide) bits)) init(0)
     faddw.setWeakName("faddw")
     when(fifoWen) {
-      when(faddw < Chout * Hout / wide - 1) {
+      when(faddw < ChoutD * Hout / wide - 1) {
         faddw := faddw + 1
       }.otherwise {
         faddw := 0
       }
     }
-    val fifo = Mem(Vec(Vec(UInt(Q bits),Wout),wide),wordCount = Hout * Chout / wide)
+    val fifo = Mem(Vec(Vec(UInt(Q bits),Wout),wide),wordCount = Hout * ChoutD / wide)
     fifo.write (
       address = faddw,
       enable  = fifoWen,
@@ -66,11 +68,11 @@ class Layer(
     fifoRen.setWeakName("fifoRen")
     val faddr1 = Reg(UInt(log2Up(wide) bits)) init(0)
     faddr1.setWeakName("faddr1")
-    val faddr2 = Reg(UInt(log2Up(Hout * Chout / wide) bits)) init(0)
+    val faddr2 = Reg(UInt(log2Up(Hout * ChoutD / wide) bits)) init(0)
     faddr2.setWeakName("faddr2")
     when(fifoWen) {
       fifoRen := True
-    }.elsewhen(faddr1 === wide - 1 && faddr2 === Hout * Chout / wide - 1) {
+    }.elsewhen(faddr1 === wide - 1 && faddr2 === Hout * ChoutD / wide - 1) {
       fifoRen := False
     }
     when(fifoRen) {
@@ -78,7 +80,7 @@ class Layer(
         faddr1 := faddr1 + 1
       }.otherwise {
         faddr1 := 0
-        when(faddr2 < Hout * Chout / wide - 1) {
+        when(faddr2 < Hout * ChoutD / wide - 1) {
           faddr2 := faddr2 + 1
         }.otherwise {
           faddr2 := 0
@@ -99,11 +101,11 @@ class Layer(
     lcOut.valid   := Delay(fifoRen,2,init = False)
 
   } else {
-    val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
+    val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout / ChoutDivHard)
     when(lcore.io.valid_out) {
       lOut := lcore.io.data_out
     }.otherwise {
-      for(i <- 0 until Chout - 1) {
+      for(i <- 0 until Chout / ChoutDivHard - 1) {
         lOut(i) := lOut(i+1)
       }
     }
@@ -111,7 +113,7 @@ class Layer(
     val lcOutValid = Reg(Bool) init(False)
     when(lcore.io.valid_out) {
       lcOutValid := True
-    }.elsewhen(Delay(lcore.io.valid_out,Chout)) {
+    }.elsewhen(Delay(lcore.io.valid_out,Chout / ChoutDivHard)) {
       lcOutValid := False
     }
     lcOut.valid   := lcOutValid

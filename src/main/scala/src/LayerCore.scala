@@ -6,6 +6,7 @@ import spinal.core.sim._
 class LayerCore(
   Chin  : Int,
   Chout : Int,
+  ChoutDivHard : Int,
   stride : Int,
   padding : Int,
   Win        : Int,
@@ -20,7 +21,7 @@ class LayerCore(
     val valid_in = in Bool
     val data_in  = in Vec(SInt(Q bits),Win)
     val valid_out = out Bool
-    val data_out = out Vec(Vec(UInt(Q bits),Wout),Chout)//Vec(UInt(Q bits),Wout)
+    val data_out = out Vec(Vec(UInt(Q bits),Wout),Chout / ChoutDivHard)//Vec(UInt(Q bits),Wout)
   } simPublic()
 
   //layer ram
@@ -52,7 +53,7 @@ class LayerCore(
   }
 
   //ctrl
-  val ctrl = new Ctrl(Chin = Chin, high = Hout, Hin = Hin, stride = stride, padding = padding)
+  val ctrl = new Ctrl(Chin = Chin, ChoutDivHard = ChoutDivHard, high = Hout, Hin = Hin, stride = stride, padding = padding)
   ctrl.io.start := start
 
   //feature map
@@ -78,10 +79,10 @@ class LayerCore(
   }
 
   //weight
-  val wrom = new Wrom(Qw = 12, Chout = Chout, layer = layer)
+  val wrom = new Wrom(Qw = 12, Chout = Chout, layer = layer, ChoutDivHard = ChoutDivHard)
   wrom.io.addr := Delay(ctrl.io.waddr,1)
 
-  val pe = new PE(Wout = Wout, Chout = Chout, Qfm = Q, Qo = Q)
+  val pe = new PE(Wout = Wout, Chout = Chout / ChoutDivHard, Qfm = Q, Qo = Q)
   pe.io.clear := ctrl.io.clear
   for(i <- 0 until Wout) {
     pe.io.FM(i) := peFM(i * stride)
@@ -89,11 +90,11 @@ class LayerCore(
   //or to write as:  pe.io.FM := Vec()
   pe.io.W  := wrom.io.w
 
-  val peOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
+  val peOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout / ChoutDivHard)
   when(Delay(ctrl.io.valid,4)) {
     peOut := pe.io.oup
   }.otherwise {
-    for(i <- 0 until Chout - 1) {
+    for(i <- 0 until Chout / ChoutDivHard - 1) {
       peOut(i) := peOut(i+1)
     }
   }
@@ -103,8 +104,8 @@ class LayerCore(
 
 }
 
-object laye {
-  def main(args : Array[String]) {
-    SpinalVerilog(new LayerCore(1,16,2,0,28,28,16,1))
-  }
-}
+//object laye {
+//  def main(args : Array[String]) {
+//    SpinalVerilog(new LayerCore(1,16,1,2,0,28,28,16,1))
+//  }
+//}

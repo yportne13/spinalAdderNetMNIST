@@ -24,7 +24,7 @@ class ANN(
     flip := False
   }
 
-  val l1 = new Layer(1,16,2,0,28,28,Q,1,SubNum = 10*256, DivNum = 2)
+  val l1 = new Layer(1,16,2,0,28,28,Q,1,SubNum = 10*256, DivNum = 2, ChoutDivHard = 2)
   l1.io.input.valid := Delay(flip,1,init = False)//io.valid_in
   l1.io.input.payload  := l1in//io.data_in
 

@@ -3,6 +3,7 @@ import spinal.lib._
 
 class Ctrl(
   Chin : Int,
+  ChoutDivHard : Int,
   high    : Int,
   Hin     : Int,
   stride : Int,
@@ -11,7 +12,7 @@ class Ctrl(
   val io = new Bundle {
     val start = in Bool
     val faddr = out UInt(log2Up((Hin+2*padding) * Chin) bits)
-    val waddr = out UInt(log2Up(Chin * 9) bits)
+    val waddr = out UInt(log2Up(Chin * 9 * ChoutDivHard) bits)
     val clear = out Bool
     val shift = out Bool
     val valid = out Bool
@@ -20,10 +21,11 @@ class Ctrl(
   val cnt1 = Reg(UInt(2 bits)) init(0)//shift
   val cntChin = Reg(UInt(log2Up(Chin) bits)) init(0)
   val cnt2 = Reg(UInt(2 bits)) init(0)
+  val cntC = Reg(UInt(log2Up(ChoutDivHard) bits)) init(0)
   val cntH = Reg(UInt(log2Up(high) bits)) init(0)
 
   val beforeEnd = Reg(Bool)
-  beforeEnd := (cnt1 === 1) && (cntChin === Chin - 1) && (cnt2 === 2) && (cntH === high - 1)
+  beforeEnd := (cnt1 === 1) && (cntChin === Chin - 1) && (cnt2 === 2) && (cntH === high - 1) && (cntC === ChoutDivHard - 1)
   val en = Reg(Bool) init(False)
   when(io.start) {
     en := True
@@ -54,8 +56,17 @@ class Ctrl(
       cnt2 := 0
     }
   }
-  if(high > 1) {
+  if(ChoutDivHard > 1) {
     when(cnt1 === 2 && cntChin === Chin - 1 && cnt2 === 2) {
+      when(cntC < ChoutDivHard - 1) {
+        cntC := cntC + 1
+      }.otherwise {
+        cntC := 0
+      }
+    }
+  }
+  if(high > 1) {
+    when(cnt1 === 2 && cntChin === Chin - 1 && cnt2 === 2 && cntC === ChoutDivHard - 1) {
       when(cntH < high - 1) {
         cntH := cntH + 1
       }.otherwise {
@@ -71,8 +82,12 @@ class Ctrl(
     faddr := cntChin + (cnt2 * Chin)(log2Up(Hin * Chin) - 1 downto 0)
   }//TODO
 
-  val waddr = Reg(UInt(log2Up(Chin * 9) bits)) init(0)
-  waddr := cntChin * 9 + cnt2 * 3 + cnt1
+  val waddr = Reg(UInt(log2Up(Chin * 9 * ChoutDivHard) bits)) init(0)
+  if(ChoutDivHard > 1) {
+    waddr := (cntChin * 9 * ChoutDivHard)(log2Up(Chin * 9 * ChoutDivHard) - 1 downto 0) + cntC * 9 + cnt2 * 3 + cnt1
+  }else {
+    waddr := cntChin * 9 + cnt2 * 3 + cnt1
+  }
 
   val clear = Reg(Bool) init(False)
   when(cnt1 === 0 && cntChin === 0 && cnt2 === 0) {

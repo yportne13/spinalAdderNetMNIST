@@ -12,7 +12,8 @@ class LayerCore(
   Win        : Int,
   Hin        : Int,
   Q          : Int,
-  layer      : Int
+  layer      : Int,
+  highFreq   : Int = 1
 ) extends Component {
 
   val Wout = (Win + 2 * padding) / stride + padding - 2
@@ -82,7 +83,7 @@ class LayerCore(
   val wrom = new Wrom(Qw = 12, Chout = Chout, layer = layer, ChoutDivHard = ChoutDivHard)
   wrom.io.addr := Delay(ctrl.io.waddr,1)
 
-  val pe = new PE(Wout = Wout, Chout = Chout / ChoutDivHard, Qfm = Q, Qo = Q)
+  val pe = new PE(Wout = Wout, Chout = Chout / ChoutDivHard, Qfm = Q, Qo = Q, highFreq = highFreq)
   pe.io.clear := ctrl.io.clear
   for(i <- 0 until Wout) {
     pe.io.FM(i) := peFM(i * stride)
@@ -90,16 +91,7 @@ class LayerCore(
   //or to write as:  pe.io.FM := Vec()
   pe.io.W  := wrom.io.w
 
-  val peOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout / ChoutDivHard)
-  when(Delay(ctrl.io.valid,4)) {
-    peOut := pe.io.oup
-  }.otherwise {
-    for(i <- 0 until Chout / ChoutDivHard - 1) {
-      peOut(i) := peOut(i+1)
-    }
-  }
-
-  io.valid_out := Delay(ctrl.io.valid,4,init = False)
+  io.valid_out := Delay(ctrl.io.valid,4+highFreq,init = False)
   io.data_out := pe.io.oup//peOut(0)
 
 }

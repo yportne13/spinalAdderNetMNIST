@@ -6,7 +6,8 @@ class PE(
   Wout : Int = 9,
   Qw  : Int = 12,
   Qfm : Int = 10,
-  Qo  : Int = 32
+  Qo  : Int = 32,
+  highFreq : Int = 1
 ) extends Component {
   val io = new Bundle {
     val clear = in Bool
@@ -19,11 +20,11 @@ class PE(
   val absOut = Vec(Vec(Reg(UInt(Array(Qfm,Qw).max bits)) init(0),Wout),Chout)
   for(i <- 0 until Chout) {
     for(j <- 0 until Wout) {
-      absOut(i)(j) := (io.FM(j) - io.W(i)).abs//(io.FM(j) -^ io.W(i)).abs.resize(Array(Qfm,Qw).max bits)
+      absOut(i)(j) := Delay((io.FM(j) - io.W(i)),highFreq).abs//(io.FM(j) -^ io.W(i)).abs.resize(Array(Qfm,Qw).max bits)
     }
   }
   
-  when(Delay(io.clear,3)) {
+  when(Delay(io.clear,3+highFreq)) {
     for(i <- 0 until Chout) {
       for(j <- 0 until Wout) {
         oup(i)(j) := absOut(i)(j)

@@ -27,7 +27,7 @@ class PE(
   when(Delay(io.clear,3+highFreq)) {
     for(i <- 0 until Chout) {
       for(j <- 0 until Wout) {
-        oup(i)(j) := absOut(i)(j)
+        oup(i)(j) := absOut(i)(j).resize(Qo bits)
       }
     }
   }.otherwise {

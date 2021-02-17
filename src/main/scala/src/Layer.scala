@@ -10,7 +10,8 @@ class Layer(
   padding : Int,
   Win        : Int,
   Hin        : Int,
-  Q          : Int,
+  Qi         : Int,
+  Qo         : Int,
   layer      : Int,
   SubNum     : Int,
   DivNum     : Int,
@@ -22,19 +23,19 @@ class Layer(
   val Hout = (Hin + 2 * padding) / stride + padding - 2
 
   val io = new Bundle {
-    val input = in (Flow(Vec(SInt(Q bits),Win)))
-    val output = out (Flow(Vec(SInt(Q bits),Wout)))
+    val input = in (Flow(Vec(SInt(Qi bits),Win)))
+    val output = out (Flow(Vec(SInt(Qo bits),Wout)))
   } simPublic()
 
-  val lcore = new LayerCore(Chin,Chout,ChoutDivHard,stride,padding,Win,Hin,Q,layer)
+  val lcore = new LayerCore(Chin,Chout,ChoutDivHard,stride,padding,Win,Hin,Qi,Qo,layer)
   lcore.io.valid_in := io.input.valid
   lcore.io.data_in  := io.input.payload
 
-  val lcOut = Flow(Vec(UInt(Q bits),Wout))
+  val lcOut = Flow(Vec(UInt(Qo bits),Wout))
   if(9*Chin < Chout / ChoutDivHard) {
     var ChoutD = Chout / ChoutDivHard
     val wide = scala.math.ceil(ChoutD / 9.0*Chin).toInt
-    val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout)
+    val lOut = Vec(Vec(Reg(UInt(Qo bits)) init(0),Wout),Chout)
     when(lcore.io.valid_out) {
       lOut := lcore.io.data_out
     }.otherwise {
@@ -58,7 +59,7 @@ class Layer(
         faddw := 0
       }
     }
-    val fifo = Mem(Vec(Vec(UInt(Q bits),Wout),wide),wordCount = Hout * ChoutD / wide)
+    val fifo = Mem(Vec(Vec(UInt(Qo bits),Wout),wide),wordCount = Hout * ChoutD / wide)
     fifo.write (
       address = faddw,
       enable  = fifoWen,
@@ -87,9 +88,9 @@ class Layer(
         }
       }
     }
-    val fifoOut = Vec(Vec(UInt(Q bits),Wout),wide)
+    val fifoOut = Vec(Vec(UInt(Qo bits),Wout),wide)
     fifoOut := fifo.readSync(faddr2)
-    val lcOutShift = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),wide)
+    val lcOutShift = Vec(Vec(Reg(UInt(Qo bits)) init(0),Wout),wide)
     when(Delay(faddr1 === 0,1,init = False)) {
       lcOutShift := fifoOut
     }.otherwise {
@@ -101,7 +102,7 @@ class Layer(
     lcOut.valid   := Delay(fifoRen,2,init = False)
 
   } else {
-    val lOut = Vec(Vec(Reg(UInt(Q bits)) init(0),Wout),Chout / ChoutDivHard)
+    val lOut = Vec(Vec(Reg(UInt(Qo bits)) init(0),Wout),Chout / ChoutDivHard)
     when(lcore.io.valid_out) {
       lOut := lcore.io.data_out
     }.otherwise {

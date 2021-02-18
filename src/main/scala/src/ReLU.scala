@@ -1,6 +1,25 @@
 import spinal.core._
 import spinal.lib._
 
+object ReLu2 {
+  def apply(input : FM): FM = {
+    val Qi = input.getQ
+    val Wi = input.getW
+    val ret = Reg(FM(input))
+    ret.fm.valid.init(False)
+    ret.setWeakName("ReLuOut")
+    for(i <- 0 until Wi) {
+      when(input.fm.payload(i)(Qi - 1) === False) {//inp > 0
+        ret.fm.payload(i) := input.fm.payload(i)
+      }.otherwise {
+        ret.fm.payload(i) := 0
+      }
+    }
+    ret.fm.valid := input.fm.valid//Delay(input.fm.valid,1,init = False)
+    ret
+  }
+}
+
 object ReLu {
   def apply(input : Vec[SInt]): Vec[SInt] = {
     val Qi = B(input(0)).getWidth

@@ -3,6 +3,20 @@ import spinal.lib._
 import spinal.sim._
 import spinal.core.sim._
 
+object adder2d {
+  def apply(inp : FM, input_channel : Int, output_channel : Int, kernel_size : Int, stride : Int = 1, padding : Int = 0, bias: Boolean = false, Qo : Int, layer : Int, ChoutDivHard : Int): FM = {
+    val Win = inp.getW
+    val Hin = inp.getH
+    val Wout = (Win + 2 * padding) / stride + padding - 2
+    val Hout = (Hin + 2 * padding) / stride + padding - 2
+    val l = new Layer(input_channel,output_channel,stride,padding,Win = inp.getW, Hin = inp.getH, Qi = inp.getQ, Qo = Qo, layer = layer, SubNum = 0, DivNum = 0, ChoutDivHard = ChoutDivHard, noReLu = true)
+    l.io.input := inp.fm
+    val oup = FM(Qo,Wout,Hout,output_channel)
+    oup.fm := l.io.output
+    oup
+  }
+}
+
 class Layer(
   Chin  : Int,
   Chout : Int,

@@ -8,7 +8,8 @@ class Wrom(
   layer : Int
 ) extends Component {
 
-  val wList = LoadWeight("param_ann.bin",mnistNoBN().x.weightList)
+  //val wList = LoadWeight("param_ann.bin",mnistNoBN().x.weightList)
+  val wList = LoadWeight("mnist.bin",mnistBN().x.weightList)
   var romDepth = 0
   var w : Array[Int] = Array(0)
   w = wList(layer - 1)
@@ -22,7 +23,7 @@ class Wrom(
 
   def Wdata = for(i <- 0 until romDepth) yield {
     val a = i % (romDepth / ChoutDivHard)
-    Vec((0 until Chout / ChoutDivHard).map(x => S(w(romDepth / ChoutDivHard * (x + i/(romDepth/ChoutDivHard)*(Chout/ChoutDivHard)) + a)*256/64,Qw bits)))
+    Vec((0 until Chout / ChoutDivHard).map(x => S(w(romDepth / ChoutDivHard * (x + i/(romDepth/ChoutDivHard)*(Chout/ChoutDivHard)) + a)*256/1024,Qw bits)))
   }
   val rom = Mem(Vec(SInt(Qw bits),Chout / ChoutDivHard),initialContent = Wdata)
   io.w := rom.readSync(io.addr)

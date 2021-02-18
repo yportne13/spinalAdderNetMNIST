@@ -48,11 +48,11 @@ object LoadWeight {
                 ret}.toArray
         idx = idx + 1
         val weight = (0 until x(0)).map{y => 
-                val ret = ( w(y) / scala.math.sqrt(varX(y)) * 1024*32).toInt
+                val ret = ( w(y) / scala.math.sqrt(varX(y)) * 1024).toInt
                 //val ret = ( w(y) / varX(y) * 1024*32).toInt
                 ret}.toList
         val bias = (0 until x(0)).map{y => 
-                val ret = ( (b(y) - w(y) * mean(y) / scala.math.sqrt(varX(y))) * 1024*32).toInt
+                val ret = ( (b(y) - w(y) * mean(y) / scala.math.sqrt(varX(y))) * 256).toInt
                 //val ret = ( b(y) - w(y) * mean(y) / varX(y) * 1024*32).toInt
                 ret}.toList
         (weight ::: bias).toArray

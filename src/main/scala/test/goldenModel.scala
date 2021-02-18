@@ -70,28 +70,28 @@ object GoldenBN {
     var suc = 0
     var div = 1024
     for(i <- 0 until 100) {
-      var l1 = Golden.adder2d(mat(i),1,16,wList(0).map(x => x.toDouble / div),2,0)
-      var b1 = Golden.BatchNorm(l1,wList(1).map(x => x.toDouble / 1024/32))
+      var l1 = Golden.adder2d(mat(i),1,16,wList(0).map(x => (x/4*4).toDouble / div),2,0)
+      var b1 = Golden.BatchNorm(l1,wList(1).map(x => x.toDouble / 256))
       var r1 = Golden.relu(b1)
       r1 = r1.map(x => x.map(x => x.map(x => scala.math.ceil(x*1024)/1024)))
-      var l2 = Golden.adder2d(r1,16,16,wList(2).map(x => x.toDouble / div),2,1)
-      var b2 = Golden.BatchNorm(l2,wList(3).map(x => x.toDouble / 1024/32))
+      var l2 = Golden.adder2d(r1,16,16,wList(2).map(x => (x/4*4).toDouble / div),2,1)
+      var b2 = Golden.BatchNorm(l2,wList(3).map(x => x.toDouble / 256))
       var r2 = Golden.relu(b2)
       r2 = r2.map(x => x.map(x => x.map(x => scala.math.ceil(x*1024)/1024)))
-      var l3 = Golden.adder2d(r2,16,32,wList(4).map(x => x.toDouble / div),2,1)
-      var b3 = Golden.BatchNorm(l3,wList(5).map(x => x.toDouble / 1024/32))
+      var l3 = Golden.adder2d(r2,16,32,wList(4).map(x => (x/4*4).toDouble / div),2,1)
+      var b3 = Golden.BatchNorm(l3,wList(5).map(x => x.toDouble / 256))
       var r3 = Golden.relu(b3)
       r3 = r3.map(x => x.map(x => x.map(x => scala.math.ceil(x*1024)/1024)))
-      val l4 = Golden.adder2d(r3,32,10,wList(6).map(x => x.toDouble / div),1,0)
+      val l4 = Golden.adder2d(r3,32,10,wList(6).map(x => (x/4*4).toDouble / div),1,0)
 
       //println(l1.map(_.map(_.max).max).max)
       //println(b1.map(_.map(_.max).max).max)
       //println(l1.map(_.map(_.min).min).min)
       //println(b1.map(_.map(_.min).min).min)
-      //for(k <- 0 until 12) {
-      //  for(j <- 0 until 12) {//mat(0)(0)(k)(j)
-      //    //print(-(l1(0)(k)(j)*4-10)*256 + ",")
-      //    print(l1(0)(k)(j) + ",")
+      //for(k <- 0 until 6) {
+      //  for(j <- 0 until 6) {//mat(0)(0)(k)(j)
+      //    print((b1(12)(k)(j))*256 + ",")
+      //    //print(l1(0)(k)(j) + ",")
       //  }
       //  println()
       //}

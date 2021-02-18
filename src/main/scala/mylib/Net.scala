@@ -23,6 +23,41 @@ trait Net {
 }
 
 object Golden {
+  def conv2d(inp : Array[Array[Array[Double]]], ic : Int, oc : Int, w : Array[Double], stride : Int, padding : Int): Array[Array[Array[Double]]] = {
+    val wide = inp(0).length + padding*2
+    var tinp = Array.ofDim[Double](ic,wide,wide)
+    if(padding == 1) {
+      for(i <- 0 until ic) {
+        for(j <- 0 until wide) {
+          for(k <- 0 until wide) {
+            if(j == 0 || j == wide-1 || k == 0 || k == wide-1) {
+              tinp(i)(j)(k) = 0
+            }else {
+              tinp(i)(j)(k) = inp(i)(j-1)(k-1)
+            }
+          }
+        }
+      }
+    }else {
+      tinp = inp
+    }
+    val wideout = wide/stride - 2 + padding
+    val oup = Array.ofDim[Double](oc,wideout,wideout)
+    for(x <- 0 until wideout) {//calculate conv
+      for(y <- 0 until wideout) {
+        for(i <- 0 until oc) {
+          for(j <- 0 until ic) {
+            for(m <- 0 until 3) {
+              for(n <- 0 until 3) {
+                oup(i)(x)(y) = oup(i)(x)(y) + (tinp(j)(stride * x+m)(stride * y+n) * w(i*9*ic+j*9+m*3+n))
+              }
+            }
+          }
+        }
+      }
+    }
+    oup
+  }
   def adder2d(inp : Array[Array[Array[Double]]], ic : Int, oc : Int, w : Array[Double], stride : Int, padding : Int): Array[Array[Array[Double]]] = {
     val wide = inp(0).length + padding*2
     var tinp = Array.ofDim[Double](ic,wide,wide)

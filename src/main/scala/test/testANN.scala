@@ -9,10 +9,10 @@ object ANNSim {
     var oCnt = 0
     var successCnt = 0
     var delay = 864 * 2
-    SimConfig.doSim(new ANN(18)){dut =>//.withWave
+    SimConfig.doSim(new ANN2(18)){dut =>//.withWave
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
-      for(idx <- 0 until 2 * 9000000) {
+      for(idx <- 0 until 2 * 90000) {
         if(idx%delay > 2 && idx%delay <= 30+28) {
           dut.io.valid_in #= true
           for(i <- 0 until 14) {

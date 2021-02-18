@@ -38,34 +38,38 @@ object Golden {
     }
     oup
   }
+  def BatchNorm(inp : Array[Array[Array[Double]]], weight : Array[Double], bias : Array[Double]): Array[Array[Array[Double]]] = {
+    val oup = inp.zipWithIndex.map{case (value,idx) => value.map(_.map(x => x * weight(idx) + bias(idx)).toArray).toArray}.toArray
+    oup
+  }
   def relu(inp : Array[Array[Array[Double]]]): Array[Array[Array[Double]]] = {
     inp.map(_.map(_.map(xi => if(xi>=0)xi else 0)))
   }
   def main(args : Array[String]) {
     val (mat,label) = LoadMNIST()
 
-    val (w1,w2,w3,w4) = LoadWeight()
+    val wList = LoadWeight("param_ann.bin",List(16*9,16*32*9,32*16*9,16*10*9))
     //println(w1(8))
     //println(mat(0)(0)(7)(7))
 
     var suc = 0
     for(i <- 0 until 5) {
-      var l1 = conv2d(mat(i),1,16,w1,2,0)
+      var l1 = conv2d(mat(i),1,16,wList(0),2,0)
       l1 = l1.map(_.map(_.map(_+10)))
       l1 = l1.map(_.map(_.map(_/4)))
       var r1 = relu(l1)
       r1 = r1.map(x => x.map(x => x.map(x => scala.math.ceil(x*256)/256)))
-      var l2 = conv2d(r1,16,32,w2,2,1)
+      var l2 = conv2d(r1,16,32,wList(1),2,1)
       l2 = l2.map(_.map(_.map(_+130)))
       l2 = l2.map(_.map(_.map(_/8)))
       var r2 = relu(l2)
       r2 = r2.map(x => x.map(x => x.map(x => scala.math.ceil(x*256)/256)))
-      var l3 = conv2d(r2,32,16,w3,2,1)
+      var l3 = conv2d(r2,32,16,wList(2),2,1)
       l3 = l3.map(_.map(_.map(_+280)))
       l3 = l3.map(_.map(_.map(_/16)))
       var r3 = relu(l3)
       r3 = r3.map(x => x.map(x => x.map(x => scala.math.ceil(x*256)/256)))
-      val l4 = conv2d(r3,16,10,w4,1,0)
+      val l4 = conv2d(r3,16,10,wList(3),1,0)
 
       //for(k <- 0 until 1) {
       //  for(j <- 0 until 1) {//mat(0)(0)(k)(j)

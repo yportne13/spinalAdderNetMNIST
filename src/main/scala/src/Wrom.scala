@@ -8,22 +8,11 @@ class Wrom(
   layer : Int
 ) extends Component {
 
-  val (w1,w2,w3,w4) = LoadWeight()
+  val wList = LoadWeight("param_ann.bin",List(16*9,16*32*9,32*16*9,16*10*9))
   var romDepth = 0
   var w : Array[Int] = Array(0)
-  if(layer == 1) {
-    w = w1
-    romDepth = w1.length / Chout
-  }else if(layer == 2) {
-    w = w2
-    romDepth = w2.length / Chout
-  }else if(layer == 3) {
-    w = w3
-    romDepth = w3.length / Chout
-  }else if(layer == 4) {
-    w = w4
-    romDepth = w4.length / Chout
-  }
+  w = wList(layer - 1)
+  romDepth = w.length / Chout
   romDepth = romDepth * ChoutDivHard
 
   val io = new Bundle {

@@ -29,28 +29,31 @@ object LoadWeight {
         idx = idx + 1 
         ret}.toArray
       }else {
+        val div = 1024
         val w = (0 until x(0)).map{y => 
-                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / 1024
+                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / div
                 idx = idx + 1
                 ret}.toArray
         val b = (0 until x(0)).map{y => 
-                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / 1024
+                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / div
                 idx = idx + 1
                 ret}.toArray
         val mean = (0 until x(0)).map{y => 
-                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / 1024
+                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / div
                 idx = idx + 1
                 ret}.toArray
         val varX = (0 until x(0)).map{y => 
-                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / 1024
+                val ret = b2i(bytesw(4*idx),bytesw(4*idx+1),bytesw(4*idx+2),bytesw(4*idx+3)).toDouble / div
                 idx = idx + 1
                 ret}.toArray
         idx = idx + 1
         val weight = (0 until x(0)).map{y => 
-                val ret = ( w(y) / scala.math.sqrt(varX(y)) * 1024).toInt
+                val ret = ( w(y) / scala.math.sqrt(varX(y)) * 1024*32).toInt
+                //val ret = ( w(y) / varX(y) * 1024*32).toInt
                 ret}.toList
         val bias = (0 until x(0)).map{y => 
-                val ret = ( b(y) - w(y) * mean(y) / scala.math.sqrt(varX(y)) * 1024).toInt
+                val ret = ( (b(y) - w(y) * mean(y) / scala.math.sqrt(varX(y))) * 1024*32).toInt
+                //val ret = ( b(y) - w(y) * mean(y) / varX(y) * 1024*32).toInt
                 ret}.toList
         (weight ::: bias).toArray
       }

@@ -8,7 +8,7 @@ class Wrom(
   layer : Int
 ) extends Component {
 
-  val wList = LoadWeight("param_ann.bin",List(16*9,16*32*9,32*16*9,16*10*9))
+  val wList = LoadWeight("param_ann.bin",mnistNoBN().x.weightList)
   var romDepth = 0
   var w : Array[Int] = Array(0)
   w = wList(layer - 1)

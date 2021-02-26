@@ -1,6 +1,8 @@
 SpinalHDL AdderNet MNIST
 ============
 
+更新：本项目为 [SpinalResNet](https://github.com/yportne13/SpinalResNet) 项目的前期探索过程，本项目的 commit 记录展示了 ResNet 项目起步阶段的发展历程，这是本项目保留的意义。后续请看 [SpinalResNet](https://github.com/yportne13/SpinalResNet)
+
 这是一个瞎写的理论上可以部署在 FPGA 上的用 SpinalHDL 写的针对 MNIST 的 AdderNet，参考了华为的那篇论文，python代码调用了华为开源的那个代码。
 
 网络结构瞎写的，一个四层的网络。训练也是瞎训练的，权重可能不太好，所以准确率很低，浮点精度 97% 多，量化后就更差了(9659/9998)。
